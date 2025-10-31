@@ -1,0 +1,201 @@
+-- SkillShare Database Schema
+-- Create database
+DROP DATABASE IF EXISTS skillshare;
+CREATE DATABASE skillshare;
+USE skillshare;
+
+-- Users table
+CREATE TABLE users (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    phone VARCHAR(20),
+    user_type ENUM('tutor', 'learner', 'both') NOT NULL DEFAULT 'learner',
+    profile_image VARCHAR(255) DEFAULT 'default.jpg',
+    bio TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Skills table
+CREATE TABLE skills (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tutor skills table (many-to-many relationship)
+CREATE TABLE tutor_skills (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    tutor_id INT NOT NULL,
+    skill_id INT NOT NULL,
+    hourly_rate DECIMAL(10,2) NOT NULL,
+    experience_years INT DEFAULT 1,
+    description TEXT,
+    FOREIGN KEY (tutor_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (skill_id) REFERENCES skills(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_tutor_skill (tutor_id, skill_id)
+);
+
+-- Sessions table
+CREATE TABLE sessions (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    tutor_id INT NOT NULL,
+    learner_id INT NOT NULL,
+    skill_id INT NOT NULL,
+    session_date DATE NOT NULL,
+    session_time TIME NOT NULL,
+    duration INT DEFAULT 60, -- in minutes
+    status ENUM('pending', 'confirmed', 'completed', 'cancelled') DEFAULT 'pending',
+    payment_status ENUM('unpaid', 'paid', 'refunded') DEFAULT 'unpaid',
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tutor_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (learner_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (skill_id) REFERENCES skills(id) ON DELETE CASCADE
+);
+
+-- Resources table
+CREATE TABLE resources (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    tutor_id INT NOT NULL,
+    skill_id INT NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    description TEXT,
+    file_name VARCHAR(255) NOT NULL,
+    file_path VARCHAR(255) NOT NULL,
+    file_type VARCHAR(50),
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tutor_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (skill_id) REFERENCES skills(id) ON DELETE CASCADE
+);
+
+-- Reviews table
+CREATE TABLE reviews (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    session_id INT NOT NULL,
+    reviewer_id INT NOT NULL,
+    reviewed_id INT NOT NULL,
+    rating INT CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewed_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Insert sample skills
+INSERT INTO skills (name, category, description) VALUES
+('Web Development', 'Technology', 'Learn HTML, CSS, JavaScript, and modern web frameworks'),
+('Mobile App Development', 'Technology', 'iOS and Android app development'),
+('Data Science', 'Technology', 'Python, R, machine learning, and data analysis'),
+('Digital Marketing', 'Business', 'SEO, social media marketing, content marketing'),
+('Graphic Design', 'Arts', 'Adobe Photoshop, Illustrator, UI/UX design'),
+('English Language', 'Languages', 'Grammar, conversation, writing skills'),
+('Spanish Language', 'Languages', 'Basic to advanced Spanish conversation'),
+('Photography', 'Arts', 'Digital photography, editing, composition'),
+('Piano', 'Music', 'Classical and modern piano techniques'),
+('Guitar', 'Music', 'Acoustic and electric guitar lessons'),
+('Python Programming', 'Technology', 'Learn Python from basics to advanced concepts'),
+('Machine Learning', 'Technology', 'Introduction to ML algorithms and applications'),
+('French Language', 'Languages', 'Learn French conversation and grammar'),
+('Video Editing', 'Arts', 'Professional video editing with Adobe Premiere'),
+('Business Strategy', 'Business', 'Strategic planning and business development'),
+('Public Speaking', 'Communication', 'Improve your presentation and speaking skills'),
+('Cooking', 'Lifestyle', 'Learn cooking techniques and recipes'),
+('Yoga', 'Health & Fitness', 'Yoga poses, breathing, and meditation'),
+('Mathematics', 'Education', 'Math tutoring from basic to advanced levels'),
+('Writing', 'Communication', 'Creative writing and technical writing skills');
+
+-- Create admin user
+INSERT INTO users (name, email, password, user_type, bio) VALUES
+('Admin User', 'admin@skillshare.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'both', 'Platform Administrator');
+
+-- Sample tutor users
+INSERT INTO users (name, email, password, user_type, phone, bio) VALUES
+('John Doe', 'john@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'tutor', '01712345678', 'Experienced web developer with 5 years of experience in full-stack development'),
+('Sarah Wilson', 'sarah@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'tutor', '01723456789', 'Professional graphic designer and UI/UX expert with 7 years of experience'),
+('Michael Chen', 'michael@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'tutor', '01734567890', 'Data scientist and machine learning engineer with PhD in Computer Science'),
+('Emily Rodriguez', 'emily@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'tutor', '01745678901', 'Certified language instructor specializing in Spanish and French'),
+('David Thompson', 'david@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'tutor', '01756789012', 'Professional photographer and video editor with 10+ years experience');
+
+-- Sample learner users
+INSERT INTO users (name, email, password, user_type, phone, bio) VALUES
+('Jane Smith', 'jane@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'learner', '01723456789', 'Eager to learn new technologies and improve my programming skills'),
+('Alex Johnson', 'alex@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'learner', '01734567890', 'Marketing professional looking to expand into digital marketing'),
+('Adam Brown', 'adam@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'both', '01745678901', 'Student interested in learning languages and teaching math'),
+('Robert Davis', 'robert@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'learner', '01756789012', 'Entrepreneur wanting to learn business strategy and public speaking');
+
+-- Link tutors with skills
+INSERT INTO tutor_skills (tutor_id, skill_id, hourly_rate, experience_years, description) VALUES
+-- John Doe (Web Development)
+(2, 1, 25.00, 5, 'Full-stack web development with React, Node.js, and modern frameworks'),
+(2, 2, 30.00, 3, 'React Native and Flutter mobile app development'),
+(2, 11, 20.00, 5, 'Python programming for web development and automation'),
+
+-- Sarah Wilson (Design)
+(3, 5, 35.00, 7, 'Professional graphic design using Adobe Creative Suite'),
+(3, 14, 40.00, 5, 'Video editing and motion graphics with Adobe Premiere and After Effects'),
+
+-- Michael Chen (Data Science)
+(4, 3, 45.00, 8, 'Data science, machine learning, and AI development'),
+(4, 11, 30.00, 8, 'Advanced Python programming for data analysis'),
+(4, 12, 50.00, 6, 'Machine learning algorithms and deep learning'),
+(4, 19, 25.00, 10, 'Mathematics and statistics for data science'),
+
+-- Emily Rodriguez (Languages)
+(5, 6, 20.00, 6, 'English language tutoring for all levels'),
+(5, 7, 22.00, 8, 'Spanish conversation and grammar lessons'),
+(5, 13, 24.00, 5, 'French language instruction from beginner to advanced'),
+
+-- David Thompson (Photography/Media)
+(6, 8, 30.00, 10, 'Professional photography techniques and composition'),
+(6, 14, 35.00, 8, 'Video editing and post-production workflows'),
+
+-- Adam Brown (Math - he's marked as 'both')
+(8, 19, 18.00, 3, 'Mathematics tutoring for high school and college students');
+
+-- Sample sessions
+INSERT INTO sessions (tutor_id, learner_id, skill_id, session_date, session_time, duration, status, payment_status, notes) VALUES
+(2, 7, 1, '2024-01-15', '14:00:00', 90, 'completed', 'paid', 'Great session on React fundamentals'),
+(3, 7, 5, '2024-01-16', '10:00:00', 60, 'completed', 'paid', 'Introduction to Adobe Photoshop basics'),
+(4, 8, 3, '2024-01-17', '16:00:00', 120, 'confirmed', 'unpaid', 'Data analysis with Python pandas'),
+(5, 9, 7, '2024-01-18', '09:00:00', 60, 'pending', 'unpaid', 'Spanish conversation practice'),
+(2, 9, 11, '2024-01-19', '15:00:00', 90, 'pending', 'unpaid', 'Python programming fundamentals'),
+(6, 7, 8, '2024-01-20', '11:00:00', 120, 'confirmed', 'unpaid', 'Portrait photography workshop');
+
+-- Sample reviews
+INSERT INTO reviews (session_id, reviewer_id, reviewed_id, rating, comment) VALUES
+(1, 7, 2, 5, 'Excellent tutor! John explained React concepts very clearly and provided great examples.'),
+(2, 7, 3, 4, 'Sarah is very knowledgeable about design. The session was helpful but could use more hands-on practice.'),
+(1, 2, 7, 5, 'Jane was an engaged student who asked great questions. Pleasure to teach!');
+
+-- Payments table
+CREATE TABLE payments (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    session_id INT NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    payment_status ENUM('pending', 'completed', 'failed', 'refunded') DEFAULT 'pending',
+    payment_method VARCHAR(50) DEFAULT 'credit_card',
+    transaction_id VARCHAR(100),
+    notes TEXT,
+    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+);
+
+-- Sample resources
+INSERT INTO resources (tutor_id, skill_id, title, description, file_name, file_path, file_type) VALUES
+(2, 1, 'React Basics Cheat Sheet', 'Quick reference guide for React components and hooks', 'react-cheatsheet.pdf', '/uploads/resources/react-cheatsheet.pdf', 'pdf'),
+(2, 11, 'Python Exercises for Beginners', 'Collection of practice problems for Python learners', 'python-exercises.pdf', '/uploads/resources/python-exercises.pdf', 'pdf'),
+(3, 5, 'Color Theory Guide', 'Comprehensive guide to color theory in design', 'color-theory.pdf', '/uploads/resources/color-theory.pdf', 'pdf'),
+(4, 3, 'Data Science Project Template', 'Jupyter notebook template for data science projects', 'ds-template.ipynb', '/uploads/resources/ds-template.ipynb', 'notebook'),
+(5, 7, 'Spanish Vocabulary Lists', 'Essential Spanish vocabulary organized by topics', 'spanish-vocab.pdf', '/uploads/resources/spanish-vocab.pdf', 'pdf'),
+(6, 8, 'Photography Composition Rules', 'Guide to essential photography composition techniques', 'photo-composition.pdf', '/uploads/resources/photo-composition.pdf', 'pdf');
+
+-- Sample payments
+INSERT INTO payments (session_id, amount, payment_status, payment_method, transaction_id, notes) VALUES
+(1, 37.50, 'completed', 'credit_card', 'txn_123456789', '90-minute session at $25/hour'),
+(2, 35.00, 'completed', 'paypal', 'txn_987654321', '60-minute session at $35/hour');
